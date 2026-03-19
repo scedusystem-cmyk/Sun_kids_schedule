@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sun Kids 課表</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f3ee;
+      --surface: #ffffff;
+      --border: #e0dbd0;
+      --text: #1a1814;
+      --text-muted: #7a7468;
+      --accent: #2d5a8e;
+      --accent-light: #e8f0f9;
+      --header-bg: #1a2f4a;
+      --header-text: #ffffff;
+      --empty: #faf9f6;
+      --time-col: 80px;
+      --cell-min: 160px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .site-header h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .date-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    .date-nav input[type="date"] {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.95rem;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .date-nav input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+      cursor: pointer;
+    }
+
+    .btn-nav {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.15s;
+      line-height: 1;
+    }
+    .btn-nav:hover { background: rgba(255,255,255,0.22); }
+
+    .weekday-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.65);
+      white-space: nowrap;
+    }
+
+    /* ── Main ── */
+    main {
+      padding: 24px 20px 48px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ── Status bar ── */
+    .status {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      min-height: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Table wrapper ── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+    }
+
+    /* Column widths */
+    col.col-time { width: var(--time-col); }
+    col.col-level { width: var(--cell-min); }
+
+    /* ── Table Header ── */
+    thead th {
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 600;
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+      text-align: center;
+      padding: 14px 10px;
+      border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    thead th:last-child { border-right: none; }
+    thead th.th-time { text-align: left; padding-left: 16px; }
+
+    /* ── Table Body ── */
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+
+    td {
+      vertical-align: top;
+      border-right: 1px solid var(--border);
+      padding: 0;
+    }
+    td:last-child { border-right: none; }
+
+    .td-time {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      padding: 12px 10px 12px 16px;
+      white-space: nowrap;
+      vertical-align: middle;
+      background: var(--empty);
+    }
+
+    .cell-empty {
+      background: var(--empty);
+      min-height: 60px;
+      display: block;
+    }
+
+    /* ── Class Card ── */
+    .class-card {
+      padding: 10px 12px;
+      min-height: 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .card-class {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1.3;
+    }
+
+    .card-teacher {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .card-book {
+      font-size: 0.75rem;
+      color: var(--text);
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+
+    .card-unit {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .card-divider {
+      border: none;
+      border-top: 1px dashed var(--border);
+      margin: 4px 0;
+    }
+
+    /* ── No Data ── */
+    .no-data {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>☀️ Sun Kids 課表</h1>
+  <div class="date-nav">
+    <button class="btn-nav" id="btn-prev">‹</button>
+    <input type="date" id="date-picker" />
+    <button class="btn-nav" id="btn-next">›</button>
+    <span class="weekday-label" id="weekday-label"></span>
+  </div>
+</header>
+
+<main>
+  <div class="status" id="status"></div>
+  <div id="schedule-container"></div>
+</main>
+
+<script>
+  const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
+  const LEVELS = ["Level_1", "Level_2", "Level_3", "Level_4", "Level_5"];
+  const LEVEL_LABELS = { Level_1: "L1", Level_2: "L2", Level_3: "L3", Level_4: "L4", Level_5: "L5" };
+
+  const datePicker = document.getElementById("date-picker");
+  const weekdayLabel = document.getElementById("weekday-label");
+  const statusEl = document.getElementById("status");
+  const container = document.getElementById("schedule-container");
+
+  // 初始日期：今天
+  function toLocalISO(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  let currentDate = toLocalISO(new Date());
+  datePicker.value = currentDate;
+  updateWeekdayLabel(currentDate);
+  loadSchedule(currentDate);
+
+  // 日期選擇
+  datePicker.addEventListener("change", () => {
+    currentDate = datePicker.value;
+    updateWeekdayLabel(currentDate);
+    loadSchedule(currentDate);
+  });
+
+  document.getElementById("btn-prev").addEventListener("click", () => shiftDate(-1));
+  document.getElementById("btn-next").addEventListener("click", () => shiftDate(1));
+
+  function shiftDate(delta) {
+    const d = new Date(currentDate + "T12:00:00");
+    d.setDate(d.getDate() + delta);
+    currentDate = toLocalISO(d);
+    datePicker.value = currentDate;
+    updateWeekdayLabel(currentDate);
+    loadSchedule(currentDate);
+  }
+
+  function updateWeekdayLabel(dateStr) {
+    const d = new Date(dateStr + "T12:00:00");
+    weekdayLabel.textContent = `（星期${WEEKDAYS[d.getDay()]}）`;
+  }
+
+  async function loadSchedule(date) {
+    setStatus("loading");
+    container.innerHTML = "";
+
+    try {
+      // 呼叫 Netlify Function 中介層
+      const res = await fetch(`/api/schedule?date=${date}`);
+      if (!res.ok) throw new Error(`伺服器錯誤 ${res.status}`);
+      const data = await res.json();
+
+      if (!Array.isArray(data) || data.length === 0) {
+        setStatus("empty");
+        return;
+      }
+
+      setStatus("ok", data.length);
+      renderTable(data);
+    } catch (err) {
+      setStatus("error", err.message);
+    }
+  }
+
+  function setStatus(state, info) {
+    if (state === "loading") {
+      statusEl.innerHTML = `<div class="spinner"></div> 載入中…`;
+    } else if (state === "ok") {
+      statusEl.textContent = `共 ${info} 堂課`;
+    } else if (state === "empty") {
+      statusEl.textContent = "這天沒有課程";
+    } else if (state === "error") {
+      statusEl.innerHTML = `<span style="color:#c0392b">載入失敗：${info}</span>`;
+    }
+  }
+
+  function renderTable(rows) {
+    // 收集所有時間，排序
+    const times = [...new Set(rows.map(r => r["時間"]))].sort();
+
+    // 建立查找 map：時間 + 等級 → row
+    const map = {};
+    rows.forEach(r => {
+      const key = `${r["時間"]}__${r["等級"]}`;
+      if (!map[key]) map[key] = [];
+      map[key].push(r);
+    });
+
+    // 找出有資料的等級欄
+    const activeLevels = LEVELS.filter(lv =>
+      rows.some(r => r["等級"] === lv)
+    );
+
+    // 建表
+    const wrap = document.createElement("div");
+    wrap.className = "table-wrap";
+
+    const table = document.createElement("table");
+
+    // colgroup
+    const cg = document.createElement("colgroup");
+    const ctTime = document.createElement("col");
+    ctTime.className = "col-time";
+    cg.appendChild(ctTime);
+    activeLevels.forEach(() => {
+      const c = document.createElement("col");
+      c.className = "col-level";
+      cg.appendChild(c);
+    });
+    table.appendChild(cg);
+
+    // thead
+    const thead = document.createElement("thead");
+    const tr = document.createElement("tr");
+    const thTime = document.createElement("th");
+    thTime.textContent = "時段";
+    thTime.className = "th-time";
+    tr.appendChild(thTime);
+    activeLevels.forEach(lv => {
+      const th = document.createElement("th");
+      th.textContent = LEVEL_LABELS[lv] + " 教室";
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+    table.appendChild(thead);
+
+    // tbody
+    const tbody = document.createElement("tbody");
+    times.forEach(time => {
+      const tr = document.createElement("tr");
+
+      const tdTime = document.createElement("td");
+      tdTime.className = "td-time";
+      tdTime.textContent = time;
+      tr.appendChild(tdTime);
+
+      activeLevels.forEach(lv => {
+        const td = document.createElement("td");
+        const key = `${time}__${lv}`;
+        const cards = map[key];
+
+        if (!cards || cards.length === 0) {
+          const empty = document.createElement("span");
+          empty.className = "cell-empty";
+          td.appendChild(empty);
+        } else {
+          cards.forEach((card, idx) => {
+            if (idx > 0) {
+              const divider = document.createElement("hr");
+              divider.className = "card-divider";
+              td.appendChild(divider);
+            }
+            td.appendChild(buildCard(card));
+          });
+        }
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    wrap.appendChild(table);
+    container.appendChild(wrap);
+  }
+
+  function buildCard(r) {
+    const div = document.createElement("div");
+    div.className = "class-card";
+
+    // 班級名稱（去掉 Lx｜ 前綴）
+    const rawName = r["班級名稱"] || "";
+    const className = rawName.replace(/^L\d｜/, "");
+    if (className) {
+      const el = document.createElement("div");
+      el.className = "card-class";
+      el.textContent = className;
+      div.appendChild(el);
+    }
+
+    // 老師
+    if (r["老師"]) {
+      const el = document.createElement("div");
+      el.className = "card-teacher";
+      el.textContent = r["老師"];
+      div.appendChild(el);
+    }
+
+    // 主教材
+    if (r["主教材"]) {
+      const el = document.createElement("div");
+      el.className = "card-book";
+      el.textContent = r["主教材"];
+      div.appendChild(el);
+    }
+
+    // 主教材進度（取第一行）
+    if (r["主教材進度"]) {
+      const el = document.createElement("div");
+      el.className = "card-unit";
+      el.textContent = r["主教材進度"].split("\n")[0];
+      div.appendChild(el);
+    }
+
+    // 副教材
+    if (r["副教材"]) {
+      const el = document.createElement("div");
+      el.className = "card-book";
+      el.style.marginTop = "4px";
+      el.textContent = r["副教材"];
+      div.appendChild(el);
+    }
+
+    // 副教材進度（取第一行）
+    if (r["副教材進度"]) {
+      const el = document.createElement("div");
+      el.className = "card-unit";
+      el.textContent = r["副教材進度"].split("\n")[0];
+      div.appendChild(el);
+    }
+
+    return div;
+  }
+</script>
+</body>
+</html>
