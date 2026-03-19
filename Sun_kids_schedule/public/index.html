@@ -425,6 +425,85 @@
       text-decoration: underline;
       text-underline-offset: 2px;
     }
+
+    /* ── 手機版卡片列表 ── */
+    @media (max-width: 599px) {
+      .table-wrap { display: none; }
+      .mobile-list { display: block; }
+    }
+    @media (min-width: 600px) {
+      .table-wrap { display: block; }
+      .mobile-list { display: none; }
+    }
+
+    .mobile-list { margin-top: 0; }
+
+    .mobile-time-group { margin-bottom: 16px; }
+
+    .mobile-time-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      padding: 6px 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 8px;
+    }
+
+    .mobile-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mobile-card {
+      background: var(--surface);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .mobile-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .mobile-card-level {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+
+    .mobile-card-class {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .mobile-card-teacher {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .mobile-card-book {
+      font-size: 0.78rem;
+      color: var(--text);
+    }
+
+    .mobile-card-unit {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
   </style>
 </head>
 <body>
@@ -447,6 +526,7 @@
 
   <div class="status" id="status"></div>
   <div id="schedule-container"></div>
+  <div id="mobile-list" class="mobile-list" style="display:none"></div>
 </main>
 
 <!-- Modal -->
@@ -569,7 +649,12 @@
       }
 
       setStatus("ok", data.length);
-      renderTable(data);
+      _lastRows = data;
+      if (isMobile()) {
+        showView(data);
+      } else {
+        renderTable(data);
+      }
     } catch (err) {
       if (version !== _reqVersion) return;
       setStatus("error", err.message);
@@ -994,6 +1079,124 @@
 
     modalOverlay.classList.add("open");
   }
+
+  const LEVEL_PILL_STYLE = {
+    Level_1: "background:var(--l1-bg);color:var(--l1-text)",
+    Level_2: "background:var(--l2-bg);color:var(--l2-text)",
+    Level_3: "background:var(--l3-bg);color:var(--l3-text)",
+    Level_4: "background:var(--l4-bg);color:var(--l4-text)",
+    Level_5: "background:var(--l5-bg);color:var(--l5-text)",
+  };
+
+  function isMobile() { return window.innerWidth < 600; }
+
+  function renderMobileList(rows) {
+    const mobileList = document.getElementById("mobile-list");
+    mobileList.innerHTML = "";
+
+    const expanded = expandRows(rows);
+    const times = [...new Set(expanded.map(r => r["時間"]))].sort();
+
+    times.forEach(time => {
+      const group = document.createElement("div");
+      group.className = "mobile-time-group";
+
+      const timeLabel = document.createElement("div");
+      timeLabel.className = "mobile-time-label";
+      timeLabel.textContent = time;
+      group.appendChild(timeLabel);
+
+      const cardsWrap = document.createElement("div");
+      cardsWrap.className = "mobile-cards";
+
+      // 找這個時間的所有課，依等級排序
+      const slots = expanded.filter(r => r["時間"] === time);
+      slots.sort((a, b) => a["等級"].localeCompare(b["等級"]));
+
+      // 去重：同 _orig 同時間只顯示一次（避免重複顯示）
+      const seen = new Set();
+      slots.forEach(r => {
+        const key = r["時間"] + (r._orig ? JSON.stringify(r._orig["班級名稱"]) : r["班級名稱"]);
+        // 如果是無副教材的重複列（+30分鐘那筆的 _orig 跟上一筆一樣），
+        // 但這裡是依 time 分組，所以不會重複，直接顯示
+        const orig = r._orig || r;
+        const cardKey = time + orig["班級名稱"] + orig["主教材"];
+        if (seen.has(cardKey)) return;
+        seen.add(cardKey);
+
+        const card = document.createElement("div");
+        card.className = "mobile-card";
+
+        // Header：等級badge + 班級名稱
+        const header = document.createElement("div");
+        header.className = "mobile-card-header";
+
+        const lvBadge = document.createElement("span");
+        lvBadge.className = "mobile-card-level";
+        lvBadge.textContent = LEVEL_LABELS[r["等級"]] || r["等級"];
+        lvBadge.style.cssText = LEVEL_PILL_STYLE[r["等級"]] || "";
+        header.appendChild(lvBadge);
+
+        const className = (r["班級名稱"] || "").replace(/^L\d｜/, "");
+        const classEl = document.createElement("div");
+        classEl.className = "mobile-card-class";
+        classEl.textContent = className;
+        classEl.style.flex = "1";
+        classEl.addEventListener("click", () => openModal(orig, time));
+        header.appendChild(classEl);
+
+        card.appendChild(header);
+
+        // 老師
+        if (r["老師"]) {
+          const el = document.createElement("div");
+          el.className = "mobile-card-teacher";
+          el.textContent = r["老師"];
+          card.appendChild(el);
+        }
+
+        // 教材
+        if (r["教材"]) {
+          const el = document.createElement("div");
+          el.className = "mobile-card-book";
+          el.textContent = r["教材"];
+          card.appendChild(el);
+        }
+
+        // 進度
+        if (r["進度"] && r["進度"].trim() !== "" && r["進度"].trim() !== "-") {
+          const el = document.createElement("div");
+          el.className = "mobile-card-unit";
+          el.textContent = r["進度"].split("\n")[0];
+          card.appendChild(el);
+        }
+
+        cardsWrap.appendChild(card);
+      });
+
+      group.appendChild(cardsWrap);
+      mobileList.appendChild(group);
+    });
+  }
+
+  // 根據螢幕寬度決定顯示哪個
+  function showView(rows) {
+    const mobileList = document.getElementById("mobile-list");
+    if (isMobile()) {
+      document.getElementById("schedule-container").style.display = "none";
+      mobileList.style.display = "block";
+      renderMobileList(rows);
+    } else {
+      document.getElementById("schedule-container").style.display = "";
+      mobileList.style.display = "none";
+    }
+  }
+
+  // 視窗resize時重新判斷
+  let _lastRows = null;
+  window.addEventListener("resize", () => {
+    if (_lastRows && currentView === "day") showView(_lastRows);
+  });
 </script>
 </body>
 </html>
