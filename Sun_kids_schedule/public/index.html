@@ -20,6 +20,17 @@
       --empty: #faf9f6;
       --time-col: 64px;
       --cell-min: 120px;
+      /* 等級淡色背景 */
+      --l1-bg: #fde8e8;
+      --l1-text: #c0392b;
+      --l2-bg: #fdecd8;
+      --l2-text: #c0621a;
+      --l3-bg: #fef9d7;
+      --l3-text: #9a7c00;
+      --l4-bg: #e2f8ec;
+      --l4-text: #1e8449;
+      --l5-bg: #ddeeff;
+      --l5-text: #1a6fa8;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -525,6 +536,7 @@
     activeLevels.forEach(lv => {
       const th = document.createElement("th");
       th.textContent = LEVEL_LABELS[lv];
+      applyLevelStyle(th, lv, true);
       trHead.appendChild(th);
     });
     thead.appendChild(trHead);
@@ -710,6 +722,7 @@
       const tdLv = document.createElement("td");
       tdLv.className = "td-level";
       tdLv.textContent = LEVEL_LABELS[lv];
+      applyLevelStyle(tdLv, lv, false);
       tr.appendChild(tdLv);
 
       weekDates.forEach(dateStr => {
@@ -754,6 +767,25 @@
     table.appendChild(tbody);
     wrap.appendChild(table);
     container.appendChild(wrap);
+  }
+
+  const LEVEL_COLORS = {
+    Level_1: { bg: "var(--l1-bg)", text: "var(--l1-text)" },
+    Level_2: { bg: "var(--l2-bg)", text: "var(--l2-text)" },
+    Level_3: { bg: "var(--l3-bg)", text: "var(--l3-text)" },
+    Level_4: { bg: "var(--l4-bg)", text: "var(--l4-text)" },
+    Level_5: { bg: "var(--l5-bg)", text: "var(--l5-text)" },
+  };
+
+  function applyLevelStyle(el, lv, isHeader) {
+    const c = LEVEL_COLORS[lv];
+    if (!c) return;
+    el.style.backgroundColor = c.bg;
+    el.style.color = c.text;
+    if (isHeader) {
+      el.style.fontWeight = "700";
+      el.style.letterSpacing = "0.04em";
+    }
   }
 </script>
 </body>
