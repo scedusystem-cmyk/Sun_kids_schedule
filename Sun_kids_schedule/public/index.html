@@ -315,6 +315,116 @@
       color: var(--text-muted);
       white-space: nowrap;
     }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal {
+      background: var(--surface);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      width: 100%;
+      max-width: 420px;
+      overflow: hidden;
+      animation: modalIn 0.18s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .modal-header {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .modal-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.4;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0 2px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .modal-body {
+      padding: 14px 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .modal-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .modal-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .modal-value {
+      font-size: 0.85rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .modal-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2px 0;
+    }
+    .modal-link {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 8px 16px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      text-align: center;
+      width: 100%;
+    }
+    .modal-link:hover { opacity: 0.88; }
+    .modal-no-link {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* 課程名稱可點擊 */
+    .card-class {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .week-slot-class {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
   </style>
 </head>
 <body>
@@ -338,6 +448,18 @@
   <div class="status" id="status"></div>
   <div id="schedule-container"></div>
 </main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
 
 <script>
   const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
@@ -483,6 +605,7 @@
         老師: r["老師"],
         教材: r["主教材"],
         進度: r["主教材進度"],
+        _orig: r,
       });
       if (r["副教材"] && r["副教材"].trim() !== "" && r["副教材"].trim() !== "-") {
         expanded.push({
@@ -492,6 +615,7 @@
           老師: r["老師"],
           教材: r["副教材"],
           進度: r["副教材進度"],
+          _orig: r,
         });
       }
     });
@@ -591,6 +715,9 @@
       const el = document.createElement("div");
       el.className = "card-class";
       el.textContent = className;
+      // r._orig 是原始 API row（日視圖），r 本身已是展開後的 row
+      const origRow = r._orig || r;
+      el.addEventListener("click", () => openModal(origRow, r["時間"]));
       div.appendChild(el);
     }
 
@@ -669,10 +796,10 @@
       const date = r["_date"];
       if (!map[lv] || !map[lv][date]) return;
       // 主教材時段
-      map[lv][date].push({ time: r["時間"], name: r["班級名稱"] });
+      map[lv][date].push({ time: r["時間"], name: r["班級名稱"], _orig: r });
       // 副教材時段（+30 分鐘）
       if (r["副教材"] && r["副教材"].trim() !== "" && r["副教材"].trim() !== "-") {
-        map[lv][date].push({ time: addThirtyMin(r["時間"]), name: r["班級名稱"] });
+        map[lv][date].push({ time: addThirtyMin(r["時間"]), name: r["班級名稱"], _orig: r });
       }
     });
 
@@ -754,6 +881,7 @@
             const nameEl = document.createElement("div");
             nameEl.className = "week-slot-class";
             nameEl.textContent = slot.name.replace(/^L\d｜/, "");
+            if (slot._orig) nameEl.addEventListener("click", () => openModal(slot._orig, slot.time));
             slotDiv.appendChild(nameEl);
 
             cell.appendChild(slotDiv);
@@ -786,6 +914,82 @@
       el.style.fontWeight = "700";
       el.style.letterSpacing = "0.04em";
     }
+  }
+
+  // ── Modal ──
+  const modalOverlay = document.getElementById("modal-overlay");
+  const modalTitle   = document.getElementById("modal-title");
+  const modalBody    = document.getElementById("modal-body");
+
+  document.getElementById("modal-close").addEventListener("click", closeModal);
+  modalOverlay.addEventListener("click", e => { if (e.target === modalOverlay) closeModal(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+  function closeModal() {
+    modalOverlay.classList.remove("open");
+  }
+
+  // orig = 原始 API row（含學生教室連結）
+  function openModal(orig, timeLabel) {
+    const name = (orig["班級名稱"] || "").replace(/^L\d｜/, "");
+    modalTitle.textContent = name;
+
+    const rows = [];
+
+    // 時段
+    rows.push({ label: "時段", value: timeLabel || orig["時間"] });
+
+    // 老師
+    if (orig["老師"]) rows.push({ label: "老師", value: orig["老師"] });
+
+    // 主教材
+    if (orig["主教材"]) {
+      const unit = (orig["主教材進度"] || "").split("\n")[0];
+      rows.push({ label: "主教材", value: orig["主教材"] + (unit ? "　" + unit : "") });
+    }
+
+    // 副教材
+    if (orig["副教材"] && orig["副教材"].trim() !== "" && orig["副教材"].trim() !== "-") {
+      const unit2 = (orig["副教材進度"] || "").split("\n")[0];
+      rows.push({ label: "副教材", value: orig["副教材"] + (unit2 ? "　" + unit2 : "") });
+    }
+
+    // 組裝 body
+    modalBody.innerHTML = "";
+    rows.forEach((r, idx) => {
+      if (idx > 0) {
+        const hr = document.createElement("hr");
+        hr.className = "modal-divider";
+        modalBody.appendChild(hr);
+      }
+      const rowEl = document.createElement("div");
+      rowEl.className = "modal-row";
+      rowEl.innerHTML = `<div class="modal-label">${r.label}</div><div class="modal-value">${r.value}</div>`;
+      modalBody.appendChild(rowEl);
+    });
+
+    // 教室連結
+    const link = orig["學生教室連結"] || "";
+    const hr = document.createElement("hr");
+    hr.className = "modal-divider";
+    modalBody.appendChild(hr);
+
+    if (link && link.startsWith("http")) {
+      const a = document.createElement("a");
+      a.className = "modal-link";
+      a.href = link;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = "進入教室";
+      modalBody.appendChild(a);
+    } else {
+      const p = document.createElement("p");
+      p.className = "modal-no-link";
+      p.textContent = "尚無教室連結";
+      modalBody.appendChild(p);
+    }
+
+    modalOverlay.classList.add("open");
   }
 </script>
 </body>
