@@ -277,14 +277,19 @@
     weekdayLabel.textContent = `星期${WEEKDAYS[d.getDay()]}`;
   }
 
+  let _reqVersion = 0;
+
   async function loadSchedule(date) {
+    const version = ++_reqVersion;
     setStatus("loading");
     container.innerHTML = "";
 
     try {
       const res = await fetch(`/api/schedule?date=${date}`);
+      if (version !== _reqVersion) return;
       if (!res.ok) throw new Error(`伺服器錯誤 ${res.status}`);
       const data = await res.json();
+      if (version !== _reqVersion) return;
 
       if (!Array.isArray(data) || data.length === 0) {
         setStatus("empty");
@@ -294,6 +299,7 @@
       setStatus("ok", data.length);
       renderTable(data);
     } catch (err) {
+      if (version !== _reqVersion) return;
       setStatus("error", err.message);
     }
   }
@@ -352,7 +358,7 @@
       map[key].push(r);
     });
 
-    const activeLevels = LEVELS.filter(lv => expanded.some(r => r["等級"] === lv));
+    const activeLevels = LEVELS; // 固定顯示 L1–L5，不管當天是否有課
 
     const wrap = document.createElement("div");
     wrap.className = "table-wrap";
