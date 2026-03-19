@@ -18,8 +18,8 @@
       --header-bg: #1a2f4a;
       --header-text: #ffffff;
       --empty: #faf9f6;
-      --time-col: 80px;
-      --cell-min: 160px;
+      --time-col: 64px;
+      --cell-min: 120px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,84 +35,79 @@
     .site-header {
       background: var(--header-bg);
       color: var(--header-text);
-      padding: 20px 32px;
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      flex-wrap: wrap;
+      padding: 14px 16px;
+      text-align: center;
     }
 
     .site-header h1 {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: 700;
       letter-spacing: 0.05em;
-      white-space: nowrap;
     }
 
-    .date-nav {
+    /* ── Main ── */
+    main {
+      padding: 0 10px 48px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* ── Date Nav ── */
+    .date-nav-bar {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-left: auto;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 0 4px;
     }
 
-    .date-nav input[type="date"] {
+    .date-nav-bar input[type="date"] {
       font-family: 'DM Mono', monospace;
-      font-size: 0.95rem;
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: #fff;
-      padding: 6px 12px;
+      font-size: 0.92rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
       border-radius: 6px;
       cursor: pointer;
       outline: none;
     }
 
-    .date-nav input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(1);
-      cursor: pointer;
-    }
-
     .btn-nav {
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: #fff;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
       padding: 6px 14px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 1rem;
-      transition: background 0.15s;
       line-height: 1;
+      transition: background 0.15s;
     }
-    .btn-nav:hover { background: rgba(255,255,255,0.22); }
+    .btn-nav:hover { background: var(--accent-light); }
 
     .weekday-label {
       font-family: 'DM Mono', monospace;
-      font-size: 0.85rem;
-      color: rgba(255,255,255,0.65);
+      font-size: 0.82rem;
+      color: var(--text-muted);
       white-space: nowrap;
-    }
-
-    /* ── Main ── */
-    main {
-      padding: 24px 20px 48px;
-      max-width: 1200px;
-      margin: 0 auto;
     }
 
     /* ── Status bar ── */
     .status {
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       color: var(--text-muted);
-      margin-bottom: 16px;
-      min-height: 20px;
+      text-align: center;
+      margin: 8px 0 10px;
+      min-height: 18px;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
     }
 
     .spinner {
-      width: 14px; height: 14px;
+      width: 13px; height: 13px;
       border: 2px solid var(--border);
       border-top-color: var(--accent);
       border-radius: 50%;
@@ -127,16 +122,15 @@
       border-radius: 10px;
       border: 1px solid var(--border);
       background: var(--surface);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 700px;
+      min-width: 360px;
     }
 
-    /* Column widths */
     col.col-time { width: var(--time-col); }
     col.col-level { width: var(--cell-min); }
 
@@ -145,14 +139,14 @@
       background: var(--header-bg);
       color: var(--header-text);
       font-weight: 600;
-      font-size: 0.82rem;
-      letter-spacing: 0.06em;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
       text-align: center;
-      padding: 14px 10px;
+      padding: 11px 6px;
       border-right: 1px solid rgba(255,255,255,0.1);
     }
     thead th:last-child { border-right: none; }
-    thead th.th-time { text-align: left; padding-left: 16px; }
+    thead th.th-time { text-align: left; padding-left: 10px; }
 
     /* ── Table Body ── */
     tbody tr { border-bottom: 1px solid var(--border); }
@@ -167,9 +161,9 @@
 
     .td-time {
       font-family: 'DM Mono', monospace;
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       color: var(--text-muted);
-      padding: 12px 10px 12px 16px;
+      padding: 10px 6px 10px 10px;
       white-space: nowrap;
       vertical-align: middle;
       background: var(--empty);
@@ -177,41 +171,41 @@
 
     .cell-empty {
       background: var(--empty);
-      min-height: 60px;
+      min-height: 54px;
       display: block;
     }
 
     /* ── Class Card ── */
     .class-card {
-      padding: 10px 12px;
-      min-height: 60px;
+      padding: 8px;
+      min-height: 54px;
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 2px;
     }
 
     .card-class {
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       font-weight: 700;
       color: var(--accent);
       line-height: 1.3;
     }
 
     .card-teacher {
-      font-size: 0.78rem;
+      font-size: 0.73rem;
       color: var(--text-muted);
       font-weight: 500;
     }
 
     .card-book {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--text);
       margin-top: 2px;
       line-height: 1.4;
     }
 
     .card-unit {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       color: var(--text-muted);
       line-height: 1.4;
     }
@@ -221,29 +215,22 @@
       border-top: 1px dashed var(--border);
       margin: 4px 0;
     }
-
-    /* ── No Data ── */
-    .no-data {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text-muted);
-      font-size: 0.95rem;
-    }
   </style>
 </head>
 <body>
 
 <header class="site-header">
   <h1>☀️ Sun Kids 課表</h1>
-  <div class="date-nav">
+</header>
+
+<main>
+  <div class="date-nav-bar">
     <button class="btn-nav" id="btn-prev">‹</button>
     <input type="date" id="date-picker" />
     <button class="btn-nav" id="btn-next">›</button>
     <span class="weekday-label" id="weekday-label"></span>
   </div>
-</header>
 
-<main>
   <div class="status" id="status"></div>
   <div id="schedule-container"></div>
 </main>
@@ -258,7 +245,6 @@
   const statusEl = document.getElementById("status");
   const container = document.getElementById("schedule-container");
 
-  // 初始日期：今天
   function toLocalISO(d) {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
@@ -268,7 +254,6 @@
   updateWeekdayLabel(currentDate);
   loadSchedule(currentDate);
 
-  // 日期選擇
   datePicker.addEventListener("change", () => {
     currentDate = datePicker.value;
     updateWeekdayLabel(currentDate);
@@ -289,7 +274,7 @@
 
   function updateWeekdayLabel(dateStr) {
     const d = new Date(dateStr + "T12:00:00");
-    weekdayLabel.textContent = `（星期${WEEKDAYS[d.getDay()]}）`;
+    weekdayLabel.textContent = `星期${WEEKDAYS[d.getDay()]}`;
   }
 
   async function loadSchedule(date) {
@@ -297,7 +282,6 @@
     container.innerHTML = "";
 
     try {
-      // 呼叫 Netlify Function 中介層
       const res = await fetch(`/api/schedule?date=${date}`);
       if (!res.ok) throw new Error(`伺服器錯誤 ${res.status}`);
       const data = await res.json();
@@ -326,30 +310,55 @@
     }
   }
 
-  function renderTable(rows) {
-    // 收集所有時間，排序
-    const times = [...new Set(rows.map(r => r["時間"]))].sort();
+  function addThirtyMin(timeStr) {
+    const [h, m] = timeStr.split(":").map(Number);
+    const total = h * 60 + m + 30;
+    return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+  }
 
-    // 建立查找 map：時間 + 等級 → row
-    const map = {};
+  function expandRows(rows) {
+    const expanded = [];
     rows.forEach(r => {
+      expanded.push({
+        時間: r["時間"],
+        等級: r["等級"],
+        班級名稱: r["班級名稱"],
+        老師: r["老師"],
+        教材: r["主教材"],
+        進度: r["主教材進度"],
+      });
+      if (r["副教材"] && r["副教材"].trim() !== "" && r["副教材"].trim() !== "-") {
+        expanded.push({
+          時間: addThirtyMin(r["時間"]),
+          等級: r["等級"],
+          班級名稱: r["班級名稱"],
+          老師: r["老師"],
+          教材: r["副教材"],
+          進度: r["副教材進度"],
+        });
+      }
+    });
+    return expanded;
+  }
+
+  function renderTable(rows) {
+    const expanded = expandRows(rows);
+    const times = [...new Set(expanded.map(r => r["時間"]))].sort();
+
+    const map = {};
+    expanded.forEach(r => {
       const key = `${r["時間"]}__${r["等級"]}`;
       if (!map[key]) map[key] = [];
       map[key].push(r);
     });
 
-    // 找出有資料的等級欄
-    const activeLevels = LEVELS.filter(lv =>
-      rows.some(r => r["等級"] === lv)
-    );
+    const activeLevels = LEVELS.filter(lv => expanded.some(r => r["等級"] === lv));
 
-    // 建表
     const wrap = document.createElement("div");
     wrap.className = "table-wrap";
 
     const table = document.createElement("table");
 
-    // colgroup
     const cg = document.createElement("colgroup");
     const ctTime = document.createElement("col");
     ctTime.className = "col-time";
@@ -361,22 +370,20 @@
     });
     table.appendChild(cg);
 
-    // thead
     const thead = document.createElement("thead");
-    const tr = document.createElement("tr");
+    const trHead = document.createElement("tr");
     const thTime = document.createElement("th");
     thTime.textContent = "時段";
     thTime.className = "th-time";
-    tr.appendChild(thTime);
+    trHead.appendChild(thTime);
     activeLevels.forEach(lv => {
       const th = document.createElement("th");
-      th.textContent = LEVEL_LABELS[lv] + " 教室";
-      tr.appendChild(th);
+      th.textContent = LEVEL_LABELS[lv];
+      trHead.appendChild(th);
     });
-    thead.appendChild(tr);
+    thead.appendChild(trHead);
     table.appendChild(thead);
 
-    // tbody
     const tbody = document.createElement("tbody");
     times.forEach(time => {
       const tr = document.createElement("tr");
@@ -420,7 +427,6 @@
     const div = document.createElement("div");
     div.className = "class-card";
 
-    // 班級名稱（去掉 Lx｜ 前綴）
     const rawName = r["班級名稱"] || "";
     const className = rawName.replace(/^L\d｜/, "");
     if (className) {
@@ -430,7 +436,6 @@
       div.appendChild(el);
     }
 
-    // 老師
     if (r["老師"]) {
       const el = document.createElement("div");
       el.className = "card-teacher";
@@ -438,36 +443,17 @@
       div.appendChild(el);
     }
 
-    // 主教材
-    if (r["主教材"]) {
+    if (r["教材"]) {
       const el = document.createElement("div");
       el.className = "card-book";
-      el.textContent = r["主教材"];
+      el.textContent = r["教材"];
       div.appendChild(el);
     }
 
-    // 主教材進度（取第一行）
-    if (r["主教材進度"]) {
+    if (r["進度"] && r["進度"].trim() !== "" && r["進度"].trim() !== "-") {
       const el = document.createElement("div");
       el.className = "card-unit";
-      el.textContent = r["主教材進度"].split("\n")[0];
-      div.appendChild(el);
-    }
-
-    // 副教材
-    if (r["副教材"]) {
-      const el = document.createElement("div");
-      el.className = "card-book";
-      el.style.marginTop = "4px";
-      el.textContent = r["副教材"];
-      div.appendChild(el);
-    }
-
-    // 副教材進度（取第一行）
-    if (r["副教材進度"]) {
-      const el = document.createElement("div");
-      el.className = "card-unit";
-      el.textContent = r["副教材進度"].split("\n")[0];
+      el.textContent = r["進度"].split("\n")[0];
       div.appendChild(el);
     }
 
