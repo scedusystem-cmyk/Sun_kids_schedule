@@ -215,6 +215,95 @@
       border-top: 1px dashed var(--border);
       margin: 4px 0;
     }
+
+    /* ── View Toggle ── */
+    .view-toggle {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .btn-view {
+      background: var(--surface);
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-family: 'Noto Sans TC', sans-serif;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-view.active { background: var(--accent); color: #fff; }
+    .btn-view:not(.active):hover { background: var(--accent-light); }
+
+    /* ── Week Table ── */
+    .week-table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    .week-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 480px;
+    }
+    .week-table thead th {
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 10px 4px;
+      border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    .week-table thead th:last-child { border-right: none; }
+    .week-table thead th.th-level { text-align: left; padding-left: 10px; }
+    .week-table tbody tr { border-bottom: 1px solid var(--border); }
+    .week-table tbody tr:last-child { border-bottom: none; }
+    .week-table td {
+      vertical-align: top;
+      border-right: 1px solid var(--border);
+      padding: 0;
+    }
+    .week-table td:last-child { border-right: none; }
+    .td-level {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--accent);
+      padding: 10px 6px 10px 10px;
+      white-space: nowrap;
+      vertical-align: middle;
+      background: var(--empty);
+    }
+    .week-cell { padding: 6px; min-height: 48px; }
+    .week-slot { margin-bottom: 5px; }
+    .week-slot:last-child { margin-bottom: 0; }
+    .week-slot-time {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.63rem;
+      color: var(--text-muted);
+    }
+    .week-slot-class {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1.3;
+    }
+    .week-slot-divider {
+      border: none;
+      border-top: 1px dashed var(--border);
+      margin: 3px 0;
+    }
+    .week-cell-empty { min-height: 48px; background: var(--empty); display: block; }
+    .week-range-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -229,6 +318,10 @@
     <input type="date" id="date-picker" />
     <button class="btn-nav" id="btn-next">›</button>
     <span class="weekday-label" id="weekday-label"></span>
+    <div class="view-toggle">
+      <button class="btn-view active" id="btn-day">日</button>
+      <button class="btn-view" id="btn-week">週</button>
+    </div>
   </div>
 
   <div class="status" id="status"></div>
@@ -249,7 +342,29 @@
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
+  // 取得該日期所在週的週一
+  function getMonday(dateStr) {
+    const d = new Date(dateStr + "T12:00:00");
+    const day = d.getDay(); // 0=日
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return toLocalISO(d);
+  }
+
+  // 取得週一到週日的日期陣列
+  function getWeekDates(mondayStr) {
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(mondayStr + "T12:00:00");
+      d.setDate(d.getDate() + i);
+      dates.push(toLocalISO(d));
+    }
+    return dates;
+  }
+
   let currentDate = toLocalISO(new Date());
+  let currentView = "day"; // "day" | "week"
+
   datePicker.value = currentDate;
   updateWeekdayLabel(currentDate);
   loadSchedule(currentDate);
@@ -257,24 +372,47 @@
   datePicker.addEventListener("change", () => {
     currentDate = datePicker.value;
     updateWeekdayLabel(currentDate);
-    loadSchedule(currentDate);
+    if (currentView === "day") loadSchedule(currentDate);
+    else loadWeekSchedule(getMonday(currentDate));
   });
 
   document.getElementById("btn-prev").addEventListener("click", () => shiftDate(-1));
   document.getElementById("btn-next").addEventListener("click", () => shiftDate(1));
 
-  function shiftDate(delta) {
-    const d = new Date(currentDate + "T12:00:00");
-    d.setDate(d.getDate() + delta);
-    currentDate = toLocalISO(d);
-    datePicker.value = currentDate;
+  document.getElementById("btn-day").addEventListener("click", () => {
+    if (currentView === "day") return;
+    currentView = "day";
+    document.getElementById("btn-day").classList.add("active");
+    document.getElementById("btn-week").classList.remove("active");
     updateWeekdayLabel(currentDate);
     loadSchedule(currentDate);
+  });
+
+  document.getElementById("btn-week").addEventListener("click", () => {
+    if (currentView === "week") return;
+    currentView = "week";
+    document.getElementById("btn-week").classList.add("active");
+    document.getElementById("btn-day").classList.remove("active");
+    loadWeekSchedule(getMonday(currentDate));
+  });
+
+  function shiftDate(delta) {
+    const d = new Date(currentDate + "T12:00:00");
+    const shift = currentView === "week" ? delta * 7 : delta;
+    d.setDate(d.getDate() + shift);
+    currentDate = toLocalISO(d);
+    datePicker.value = currentDate;
+    if (currentView === "day") {
+      updateWeekdayLabel(currentDate);
+      loadSchedule(currentDate);
+    } else {
+      loadWeekSchedule(getMonday(currentDate));
+    }
   }
 
   function updateWeekdayLabel(dateStr) {
     const d = new Date(dateStr + "T12:00:00");
-    weekdayLabel.textContent = `星期${WEEKDAYS[d.getDay()]}`;
+    weekdayLabel.textContent = currentView === "day" ? `星期${WEEKDAYS[d.getDay()]}` : "";
   }
 
   let _reqVersion = 0;
@@ -309,6 +447,8 @@
       statusEl.innerHTML = `<div class="spinner"></div> 載入中…`;
     } else if (state === "ok") {
       statusEl.textContent = `共 ${info} 堂課`;
+    } else if (state === "week") {
+      statusEl.textContent = "";
     } else if (state === "empty") {
       statusEl.textContent = "這天沒有課程";
     } else if (state === "error") {
@@ -464,6 +604,156 @@
     }
 
     return div;
+  }
+
+  // ── 週視圖 ──
+  let _weekReqVersion = 0;
+
+  async function loadWeekSchedule(mondayStr) {
+    const version = ++_weekReqVersion;
+    setStatus("loading");
+    container.innerHTML = "";
+
+    const weekDates = getWeekDates(mondayStr);
+    const sunday = weekDates[6];
+
+    // 更新 weekday label 顯示週範圍
+    weekdayLabel.textContent = `${mondayStr.slice(5)} – ${sunday.slice(5)}`;
+
+    try {
+      // 並行請求這週每一天
+      const promises = weekDates.map(date =>
+        fetch(`/api/schedule?date=${date}`)
+          .then(r => r.ok ? r.json() : [])
+          .then(data => data.map(row => ({ ...row, _date: date })))
+      );
+      const results = await Promise.all(promises);
+      if (version !== _weekReqVersion) return;
+
+      const allRows = results.flat();
+      if (allRows.length === 0) {
+        setStatus("empty");
+        return;
+      }
+
+      setStatus("week");
+      renderWeekTable(allRows, weekDates);
+    } catch (err) {
+      if (version !== _weekReqVersion) return;
+      setStatus("error", err.message);
+    }
+  }
+
+  function renderWeekTable(rows, weekDates) {
+    // map: 等級 → 日期 → [{時間, 班級名稱}]
+    const map = {};
+    LEVELS.forEach(lv => {
+      map[lv] = {};
+      weekDates.forEach(d => { map[lv][d] = []; });
+    });
+
+    rows.forEach(r => {
+      const lv = r["等級"];
+      const date = r["_date"];
+      if (!map[lv] || !map[lv][date]) return;
+      // 主教材時段
+      map[lv][date].push({ time: r["時間"], name: r["班級名稱"] });
+      // 副教材時段（+30 分鐘）
+      if (r["副教材"] && r["副教材"].trim() !== "" && r["副教材"].trim() !== "-") {
+        map[lv][date].push({ time: addThirtyMin(r["時間"]), name: r["班級名稱"] });
+      }
+    });
+
+    // 對每格依時間排序並去重（同班級同時間只顯示一次）
+    LEVELS.forEach(lv => {
+      weekDates.forEach(d => {
+        const seen = new Set();
+        map[lv][d] = map[lv][d]
+          .filter(s => {
+            const key = s.time + s.name;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+          .sort((a, b) => a.time.localeCompare(b.time));
+      });
+    });
+
+    const wrap = document.createElement("div");
+    wrap.className = "week-table-wrap";
+
+    const table = document.createElement("table");
+    table.className = "week-table";
+
+    // thead：等級欄 + 週一到週日
+    const thead = document.createElement("thead");
+    const trHead = document.createElement("tr");
+    const thLv = document.createElement("th");
+    thLv.textContent = "等級";
+    thLv.className = "th-level";
+    trHead.appendChild(thLv);
+
+    weekDates.forEach(dateStr => {
+      const d = new Date(dateStr + "T12:00:00");
+      const th = document.createElement("th");
+      th.innerHTML = `${WEEKDAYS[d.getDay()]}<br><span style="font-weight:400;font-size:0.65rem;opacity:0.75">${dateStr.slice(5)}</span>`;
+      trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+    table.appendChild(thead);
+
+    // tbody：每個等級一列
+    const tbody = document.createElement("tbody");
+    LEVELS.forEach(lv => {
+      const tr = document.createElement("tr");
+
+      const tdLv = document.createElement("td");
+      tdLv.className = "td-level";
+      tdLv.textContent = LEVEL_LABELS[lv];
+      tr.appendChild(tdLv);
+
+      weekDates.forEach(dateStr => {
+        const td = document.createElement("td");
+        const slots = map[lv][dateStr];
+
+        if (!slots || slots.length === 0) {
+          const empty = document.createElement("span");
+          empty.className = "week-cell-empty";
+          td.appendChild(empty);
+        } else {
+          const cell = document.createElement("div");
+          cell.className = "week-cell";
+
+          slots.forEach((slot, idx) => {
+            if (idx > 0) {
+              const div = document.createElement("hr");
+              div.className = "week-slot-divider";
+              cell.appendChild(div);
+            }
+            const slotDiv = document.createElement("div");
+            slotDiv.className = "week-slot";
+
+            const timeEl = document.createElement("div");
+            timeEl.className = "week-slot-time";
+            timeEl.textContent = slot.time;
+            slotDiv.appendChild(timeEl);
+
+            const nameEl = document.createElement("div");
+            nameEl.className = "week-slot-class";
+            nameEl.textContent = slot.name.replace(/^L\d｜/, "");
+            slotDiv.appendChild(nameEl);
+
+            cell.appendChild(slotDiv);
+          });
+          td.appendChild(cell);
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    container.appendChild(wrap);
   }
 </script>
 </body>
