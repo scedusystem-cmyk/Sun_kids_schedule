@@ -598,6 +598,8 @@
   function expandRows(rows) {
     const expanded = [];
     rows.forEach(r => {
+      const hasSub = r["副教材"] && r["副教材"].trim() !== "" && r["副教材"].trim() !== "-";
+      // 第一個半點：主教材
       expanded.push({
         時間: r["時間"],
         等級: r["等級"],
@@ -607,17 +609,16 @@
         進度: r["主教材進度"],
         _orig: r,
       });
-      if (r["副教材"] && r["副教材"].trim() !== "" && r["副教材"].trim() !== "-") {
-        expanded.push({
-          時間: addThirtyMin(r["時間"]),
-          等級: r["等級"],
-          班級名稱: r["班級名稱"],
-          老師: r["老師"],
-          教材: r["副教材"],
-          進度: r["副教材進度"],
-          _orig: r,
-        });
-      }
+      // 第二個半點：有副教材顯示副教材，無副教材顯示相同的主教材
+      expanded.push({
+        時間: addThirtyMin(r["時間"]),
+        等級: r["等級"],
+        班級名稱: r["班級名稱"],
+        老師: r["老師"],
+        教材: hasSub ? r["副教材"] : r["主教材"],
+        進度: hasSub ? r["副教材進度"] : r["主教材進度"],
+        _orig: r,
+      });
     });
     return expanded;
   }
@@ -797,10 +798,8 @@
       if (!map[lv] || !map[lv][date]) return;
       // 主教材時段
       map[lv][date].push({ time: r["時間"], name: r["班級名稱"], _orig: r });
-      // 副教材時段（+30 分鐘）
-      if (r["副教材"] && r["副教材"].trim() !== "" && r["副教材"].trim() !== "-") {
-        map[lv][date].push({ time: addThirtyMin(r["時間"]), name: r["班級名稱"], _orig: r });
-      }
+      // 第二個半點（永遠存在）
+      map[lv][date].push({ time: addThirtyMin(r["時間"]), name: r["班級名稱"], _orig: r });
     });
 
     // 對每格依時間排序並去重（同班級同時間只顯示一次）
