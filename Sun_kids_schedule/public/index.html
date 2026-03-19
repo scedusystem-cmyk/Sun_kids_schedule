@@ -842,6 +842,10 @@
     const version = ++_weekReqVersion;
     setStatus("loading");
     container.innerHTML = "";
+    // 週視圖永遠用表格，隱藏手機卡片列表
+    container.style.display = "";
+    document.getElementById("mobile-list").style.display = "none";
+    _lastRows = null;
 
     const weekDates = getWeekDates(mondayStr);
     const sunday = weekDates[6];
