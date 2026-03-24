@@ -637,10 +637,7 @@
     container.innerHTML = "";
 
     try {
-      const res = await fetch(`/api/schedule?date=${date}`);
-      if (version !== _reqVersion) return;
-      if (!res.ok) throw new Error(`伺服器錯誤 ${res.status}`);
-      const data = await res.json();
+      const data = await fetchScheduleForDate(date);
       if (version !== _reqVersion) return;
 
       if (!Array.isArray(data) || data.length === 0) {
@@ -854,9 +851,9 @@
     try {
       // 並行請求這週每一天
       const promises = weekDates.map(date =>
-        fetch(`/api/schedule?date=${date}`)
-          .then(r => r.ok ? r.json() : [])
+        fetchScheduleForDate(date)
           .then(data => data.map(row => ({ ...row, _date: date })))
+          .catch(() => [])
       );
       const results = await Promise.all(promises);
       if (version !== _weekReqVersion) return;
