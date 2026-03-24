@@ -542,6 +542,65 @@
 
 
 <script>
+  // ── Google Sheets 設定 ──
+  const SHEET_ID = "1gRZN5Xxlot5VINlDzYabBcuFoXrdgrb5ocENvtTFc8M";
+  const SHEET_NAME = encodeURIComponent("Main_List");
+  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
+
+  // ── CSV 解析 ──
+  function parseCSV(text) {
+    const rows = [];
+    let row = [];
+    let field = "";
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const next = text[i + 1];
+      if (inQuotes) {
+        if (ch === '"' && next === '"') { field += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { field += ch; }
+      } else {
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === ',') { row.push(field); field = ""; }
+        else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ""; }
+        else if (ch === '\r') { /* skip */ }
+        else { field += ch; }
+      }
+    }
+    if (field || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  // ── 取得並過濾指定日期的課程資料 ──
+  async function fetchScheduleForDate(date) {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error(`Google Sheets 回應錯誤：${res.status}`);
+    const csvText = await res.text();
+    const rows = parseCSV(csvText);
+    if (rows.length === 0) return [];
+    const headers = rows[0];
+    const data = rows.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = row[i] ?? ""; });
+      return obj;
+    });
+    return data
+      .filter(r => r["日期"] === date && r["狀態"] === "Scheduled")
+      .map(r => ({
+        時間: r["時間"],
+        教室: r["教室"],
+        等級: r["等級"],
+        老師: r["老師"],
+        班級名稱: r["班級名稱"],
+        主教材: r["主教材"],
+        主教材進度: r["主教材進度"],
+        副教材: r["副教材"],
+        副教材進度: r["副教材進度"],
+        學生教室連結: r["學生教室連結"],
+      }));
+  }
+
   let _reqVersion = 0;
   let _weekReqVersion = 0;
 
