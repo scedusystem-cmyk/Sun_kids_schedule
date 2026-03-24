@@ -542,65 +542,6 @@
 
 
 <script>
-  // ── Google Sheets 設定 ──
-  const SHEET_ID = "1gRZN5Xxlot5VINlDzYabBcuFoXrdgrb5ocENvtTFc8M";
-  const SHEET_NAME = encodeURIComponent("Main_List");
-  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
-
-  // ── CSV 解析（與原本 Netlify Function 相同邏輯）──
-  function parseCSV(text) {
-    const rows = [];
-    let row = [];
-    let field = "";
-    let inQuotes = false;
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      const next = text[i + 1];
-      if (inQuotes) {
-        if (ch === '"' && next === '"') { field += '"'; i++; }
-        else if (ch === '"') { inQuotes = false; }
-        else { field += ch; }
-      } else {
-        if (ch === '"') { inQuotes = true; }
-        else if (ch === ',') { row.push(field); field = ""; }
-        else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ""; }
-        else if (ch === '\r') { /* skip */ }
-        else { field += ch; }
-      }
-    }
-    if (field || row.length) { row.push(field); rows.push(row); }
-    return rows;
-  }
-
-  // ── 取得並過濾指定日期的課程資料 ──
-  async function fetchScheduleForDate(date) {
-    const res = await fetch(CSV_URL);
-    if (!res.ok) throw new Error(`Google Sheets 回應錯誤：${res.status}`);
-    const csvText = await res.text();
-    const rows = parseCSV(csvText);
-    if (rows.length === 0) return [];
-    const headers = rows[0];
-    const data = rows.slice(1).map(row => {
-      const obj = {};
-      headers.forEach((h, i) => { obj[h] = row[i] ?? ""; });
-      return obj;
-    });
-    return data
-      .filter(r => r["日期"] === date && r["狀態"] === "Scheduled")
-      .map(r => ({
-        時間: r["時間"],
-        教室: r["教室"],
-        等級: r["等級"],
-        老師: r["老師"],
-        班級名稱: r["班級名稱"],
-        主教材: r["主教材"],
-        主教材進度: r["主教材進度"],
-        副教材: r["副教材"],
-        副教材進度: r["副教材進度"],
-        學生教室連結: r["學生教室連結"],
-      }));
-  }
-
   let _reqVersion = 0;
   let _weekReqVersion = 0;
 
@@ -696,7 +637,10 @@
     container.innerHTML = "";
 
     try {
-      const data = await fetchScheduleForDate(date);
+      const res = await fetch(`/api/schedule?date=${date}`);
+      if (version !== _reqVersion) return;
+      if (!res.ok) throw new Error(`伺服器錯誤 ${res.status}`);
+      const data = await res.json();
       if (version !== _reqVersion) return;
 
       if (!Array.isArray(data) || data.length === 0) {
@@ -766,11 +710,10 @@
   }
 
   function renderTable(rows) {
-    const expanded = expandRows(rows);
-    const times = [...new Set(expanded.map(r => r["時間"]))].sort();
+    const times = [...new Set(rows.map(r => r["時間"]))].sort();
 
     const map = {};
-    expanded.forEach(r => {
+    rows.forEach(r => {
       const key = `${r["時間"]}__${r["等級"]}`;
       if (!map[key]) map[key] = [];
       map[key].push(r);
@@ -863,9 +806,7 @@
       const el = document.createElement("div");
       el.className = "card-class";
       el.textContent = className;
-      // r._orig 是原始 API row（日視圖），r 本身已是展開後的 row
-      const origRow = r._orig || r;
-      el.addEventListener("click", () => openModal(origRow, r["時間"]));
+      el.addEventListener("click", () => openModal(r, r["時間"]));
       div.appendChild(el);
     }
 
@@ -876,17 +817,18 @@
       div.appendChild(el);
     }
 
-    if (r["教材"]) {
+    if (r["主教材"]) {
       const el = document.createElement("div");
       el.className = "card-book";
-      el.textContent = r["教材"];
+      el.textContent = r["主教材"];
       div.appendChild(el);
     }
 
-    if (r["進度"] && r["進度"].trim() !== "" && r["進度"].trim() !== "-") {
+    const progress = r["主教材進度"] || "";
+    if (progress.trim() !== "" && progress.trim() !== "-") {
       const el = document.createElement("div");
       el.className = "card-unit";
-      el.textContent = r["進度"].split("\n")[0];
+      el.textContent = progress.split("\n")[0];
       div.appendChild(el);
     }
 
@@ -912,9 +854,9 @@
     try {
       // 並行請求這週每一天
       const promises = weekDates.map(date =>
-        fetchScheduleForDate(date)
+        fetch(`/api/schedule?date=${date}`)
+          .then(r => r.ok ? r.json() : [])
           .then(data => data.map(row => ({ ...row, _date: date })))
-          .catch(() => [])
       );
       const results = await Promise.all(promises);
       if (version !== _weekReqVersion) return;
@@ -945,10 +887,7 @@
       const lv = r["等級"];
       const date = r["_date"];
       if (!map[lv] || !map[lv][date]) return;
-      // 主教材時段
       map[lv][date].push({ time: r["時間"], name: r["班級名稱"], _orig: r });
-      // 第二個半點（永遠存在）
-      map[lv][date].push({ time: addThirtyMin(r["時間"]), name: r["班級名稱"], _orig: r });
     });
 
     // 對每格依時間排序並去重（同班級同時間只顯示一次）
@@ -1154,8 +1093,7 @@
     const mobileList = document.getElementById("mobile-list");
     mobileList.innerHTML = "";
 
-    const expanded = expandRows(rows);
-    const times = [...new Set(expanded.map(r => r["時間"]))].sort();
+    const times = [...new Set(rows.map(r => r["時間"]))].sort();
 
     times.forEach(time => {
       const group = document.createElement("div");
@@ -1169,21 +1107,10 @@
       const cardsWrap = document.createElement("div");
       cardsWrap.className = "mobile-cards";
 
-      // 找這個時間的所有課，依等級排序
-      const slots = expanded.filter(r => r["時間"] === time);
+      const slots = rows.filter(r => r["時間"] === time);
       slots.sort((a, b) => a["等級"].localeCompare(b["等級"]));
 
-      // 去重：同 _orig 同時間只顯示一次（避免重複顯示）
-      const seen = new Set();
       slots.forEach(r => {
-        const key = r["時間"] + (r._orig ? JSON.stringify(r._orig["班級名稱"]) : r["班級名稱"]);
-        // 如果是無副教材的重複列（+30分鐘那筆的 _orig 跟上一筆一樣），
-        // 但這裡是依 time 分組，所以不會重複，直接顯示
-        const orig = r._orig || r;
-        const cardKey = time + orig["班級名稱"] + orig["主教材"];
-        if (seen.has(cardKey)) return;
-        seen.add(cardKey);
-
         const card = document.createElement("div");
         card.className = "mobile-card";
 
@@ -1202,7 +1129,7 @@
         classEl.className = "mobile-card-class";
         classEl.textContent = className;
         classEl.style.flex = "1";
-        classEl.addEventListener("click", () => openModal(orig, time));
+        classEl.addEventListener("click", () => openModal(r, time));
         header.appendChild(classEl);
 
         card.appendChild(header);
@@ -1216,18 +1143,19 @@
         }
 
         // 教材
-        if (r["教材"]) {
+        if (r["主教材"]) {
           const el = document.createElement("div");
           el.className = "mobile-card-book";
-          el.textContent = r["教材"];
+          el.textContent = r["主教材"];
           card.appendChild(el);
         }
 
         // 進度
-        if (r["進度"] && r["進度"].trim() !== "" && r["進度"].trim() !== "-") {
+        const progress = r["主教材進度"] || "";
+        if (progress.trim() !== "" && progress.trim() !== "-") {
           const el = document.createElement("div");
           el.className = "mobile-card-unit";
-          el.textContent = r["進度"].split("\n")[0];
+          el.textContent = progress.split("\n")[0];
           card.appendChild(el);
         }
 
