@@ -31,6 +31,8 @@
       --l4-text: #1e8449;
       --l5-bg: #ddeeff;
       --l5-text: #1a6fa8;
+      --l6-bg: #f0e8ff;
+      --l6-text: #6b21a8;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -413,6 +415,109 @@
       font-size: 0.82rem;
       color: var(--text-muted);
     }
+    .modal-gcal-btn {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 8px 16px;
+      background: #1a8a4a;
+      color: #fff;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      text-align: center;
+      width: 100%;
+    }
+    .modal-gcal-btn:hover { opacity: 0.88; }
+
+    /* ── 公告 Modal ── */
+    .ann-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .ann-overlay.open { display: flex; }
+    .ann-modal {
+      background: var(--surface);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+      width: 100%;
+      max-width: 420px;
+      overflow: hidden;
+      animation: modalIn 0.18s ease;
+    }
+    .ann-header {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: var(--header-bg);
+      color: var(--header-text);
+    }
+    .ann-header-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .ann-close {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: rgba(255,255,255,0.8);
+      cursor: pointer;
+      padding: 0 2px;
+      line-height: 1;
+    }
+    .ann-body {
+      padding: 16px;
+    }
+    .ann-item {
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ann-item:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .ann-item-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .ann-item-content {
+      font-size: 0.84rem;
+      color: var(--text);
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .ann-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      text-align: right;
+    }
+    .ann-ok-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 24px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Noto Sans TC', sans-serif;
+    }
+    .ann-ok-btn:hover { opacity: 0.88; }
+    .ann-loading {
+      text-align: center;
+      padding: 24px 16px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
 
     /* 課程名稱可點擊 */
     .card-class {
@@ -529,6 +634,22 @@
   <div id="mobile-list" class="mobile-list" style="display:none"></div>
 </main>
 
+<!-- 公告 Modal -->
+<div class="ann-overlay" id="ann-overlay">
+  <div class="ann-modal">
+    <div class="ann-header">
+      <div class="ann-header-title">📢 最新公告</div>
+      <button class="ann-close" id="ann-close">✕</button>
+    </div>
+    <div id="ann-body" class="ann-body">
+      <div class="ann-loading">載入中…</div>
+    </div>
+    <div class="ann-footer">
+      <button class="ann-ok-btn" id="ann-ok">我知道了</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal" id="modal">
@@ -605,8 +726,8 @@
   let _weekReqVersion = 0;
 
   const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-  const LEVELS = ["Level_1", "Level_2", "Level_3", "Level_4", "Level_5"];
-  const LEVEL_LABELS = { Level_1: "L1", Level_2: "L2", Level_3: "L3", Level_4: "L4", Level_5: "L5" };
+  const LEVELS = ["Level_1", "Level_2", "Level_3", "Level_4", "Level_5", "Level_6"];
+  const LEVEL_LABELS = { Level_1: "L1", Level_2: "L2", Level_3: "L3", Level_4: "L4", Level_5: "L5", Level_6: "L6" };
 
   const datePicker = document.getElementById("date-picker");
   const weekdayLabel = document.getElementById("weekday-label");
@@ -862,7 +983,7 @@
       const el = document.createElement("div");
       el.className = "card-class";
       el.textContent = className;
-      el.addEventListener("click", () => openModal(r, r["時間"]));
+      el.addEventListener("click", () => openModal(r, r["時間"], currentDate));
       div.appendChild(el);
     }
 
@@ -1024,7 +1145,7 @@
             const nameEl = document.createElement("div");
             nameEl.className = "week-slot-class";
             nameEl.textContent = slot.name.replace(/^L\d｜/, "");
-            if (slot._orig) nameEl.addEventListener("click", () => openModal(slot._orig, slot.time));
+            if (slot._orig) nameEl.addEventListener("click", () => openModal(slot._orig, slot.time, slot._orig._date || currentDate));
             slotDiv.appendChild(nameEl);
 
             cell.appendChild(slotDiv);
@@ -1046,6 +1167,7 @@
     Level_3: { bg: "var(--l3-bg)", text: "var(--l3-text)" },
     Level_4: { bg: "var(--l4-bg)", text: "var(--l4-text)" },
     Level_5: { bg: "var(--l5-bg)", text: "var(--l5-text)" },
+    Level_6: { bg: "var(--l6-bg)", text: "var(--l6-text)" },
   };
 
   function applyLevelStyle(el, lv, isHeader) {
@@ -1072,8 +1194,8 @@
     modalOverlay.classList.remove("open");
   }
 
-  // orig = 原始 API row（含學生教室連結）
-  function openModal(orig, timeLabel) {
+  // orig = 原始 API row（含學生教室連結）, dateStr = "YYYY-MM-DD"
+  function openModal(orig, timeLabel, dateStr) {
     const name = (orig["班級名稱"] || "").replace(/^L\d｜/, "");
     modalTitle.textContent = name;
 
@@ -1132,7 +1254,42 @@
       modalBody.appendChild(p);
     }
 
+    // Google 行事曆按鈕
+    const useDateStr = dateStr || currentDate;
+    const gcalUrl = buildGCalUrl(orig, useDateStr, timeLabel || orig["時間"]);
+    const gcalA = document.createElement("a");
+    gcalA.className = "modal-gcal-btn";
+    gcalA.href = gcalUrl;
+    gcalA.target = "_blank";
+    gcalA.rel = "noopener";
+    gcalA.textContent = "📅 加入Google 行事曆";
+    modalBody.appendChild(gcalA);
+
     modalOverlay.classList.add("open");
+  }
+
+  // 建立 Google 行事曆 URL（課程時長 30 分鐘）
+  function buildGCalUrl(orig, dateStr, timeStr) {
+    const name = (orig["班級名稱"] || "").replace(/^L\d｜/, "");
+    const [year, month, day] = (dateStr || currentDate).split("-");
+    const [hour, min] = (timeStr || "00:00").split(":");
+    const startDt = `${year}${month}${day}T${String(hour).padStart(2,"0")}${String(min).padStart(2,"0")}00`;
+    const totalMin = parseInt(hour) * 60 + parseInt(min) + 30;
+    const eH = String(Math.floor(totalMin / 60)).padStart(2, "0");
+    const eM = String(totalMin % 60).padStart(2, "0");
+    const endDt = `${year}${month}${day}T${eH}${eM}00`;
+
+    const details = [
+      orig["老師"] ? `老師：${orig["老師"]}` : "",
+      orig["主教材"] ? `主教材：${orig["主教材"]}` : "",
+      (orig["主教材進度"] || "").split("\n")[0] ? `進度：${(orig["主教材進度"] || "").split("\n")[0]}` : "",
+      orig["副教材"] && orig["副教材"].trim() !== "-" && orig["副教材"].trim() !== ""
+        ? `副教材：${orig["副教材"]}` : "",
+      orig["學生教室連結"] && orig["學生教室連結"].startsWith("http")
+        ? `教室連結：${orig["學生教室連結"]}` : "",
+    ].filter(Boolean).join("\n");
+
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(name)}&dates=${startDt}/${endDt}&details=${encodeURIComponent(details)}`;
   }
 
   const LEVEL_PILL_STYLE = {
@@ -1141,6 +1298,7 @@
     Level_3: "background:var(--l3-bg);color:var(--l3-text)",
     Level_4: "background:var(--l4-bg);color:var(--l4-text)",
     Level_5: "background:var(--l5-bg);color:var(--l5-text)",
+    Level_6: "background:var(--l6-bg);color:var(--l6-text)",
   };
 
   function isMobile() { return window.innerWidth < 600; }
@@ -1185,7 +1343,7 @@
         classEl.className = "mobile-card-class";
         classEl.textContent = className;
         classEl.style.flex = "1";
-        classEl.addEventListener("click", () => openModal(r, time));
+        classEl.addEventListener("click", () => openModal(r, time, currentDate));
         header.appendChild(classEl);
 
         card.appendChild(header);
@@ -1241,6 +1399,85 @@
   window.addEventListener("resize", () => {
     if (_lastRows && currentView === "day") showView(_lastRows);
   });
+
+  // ── 公告系統 ──
+  const ANN_SHEET_NAME = encodeURIComponent("公告");
+  const ANN_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${ANN_SHEET_NAME}`;
+  const ANN_STORAGE_KEY = "sunkids_ann_shown_date";
+
+  const annOverlay = document.getElementById("ann-overlay");
+  const annBody    = document.getElementById("ann-body");
+
+  document.getElementById("ann-close").addEventListener("click", closeAnn);
+  document.getElementById("ann-ok").addEventListener("click", closeAnn);
+  annOverlay.addEventListener("click", e => { if (e.target === annOverlay) closeAnn(); });
+
+  function closeAnn() {
+    annOverlay.classList.remove("open");
+  }
+
+  async function checkAndShowAnnouncement() {
+    const today = toLocalISO(new Date());
+    const lastShown = localStorage.getItem(ANN_STORAGE_KEY);
+    if (lastShown === today) return; // 今天已顯示過
+
+    // 先顯示 modal（loading 狀態）
+    annOverlay.classList.add("open");
+
+    try {
+      const res = await fetch(ANN_CSV_URL);
+      if (!res.ok) throw new Error("載入失敗");
+      const csvText = await res.text();
+      const rows = parseCSV(csvText);
+      if (rows.length < 2) {
+        closeAnn();
+        return;
+      }
+      const headers = rows[0];
+      const data = rows.slice(1).map(row => {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h.trim()] = (row[i] ?? "").trim(); });
+        return obj;
+      });
+
+      // 只顯示狀態為「Active」或「啟用」的公告
+      const active = data.filter(r => {
+        const s = (r["狀態"] || r["状态"] || "").toLowerCase();
+        return s === "active" || s === "啟用" || s === "启用";
+      });
+
+      if (active.length === 0) {
+        closeAnn();
+        return;
+      }
+
+      // 組裝公告內容
+      annBody.innerHTML = "";
+      active.forEach(r => {
+        const item = document.createElement("div");
+        item.className = "ann-item";
+        const titleEl = document.createElement("div");
+        titleEl.className = "ann-item-title";
+        titleEl.textContent = r["標題"] || r["标题"] || "公告";
+        item.appendChild(titleEl);
+        const contentEl = document.createElement("div");
+        contentEl.className = "ann-item-content";
+        contentEl.textContent = r["內容"] || r["内容"] || "";
+        item.appendChild(contentEl);
+        annBody.appendChild(item);
+      });
+
+      // 記錄今天已顯示
+      localStorage.setItem(ANN_STORAGE_KEY, today);
+
+    } catch (err) {
+      // 若公告表不存在或載入失敗，靜默關閉
+      closeAnn();
+    }
+  }
+
+  // 頁面載入後執行公告檢查
+  checkAndShowAnnouncement();
 </script>
 </body>
 </html>
