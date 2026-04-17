@@ -429,6 +429,21 @@
       width: 100%;
     }
     .modal-gcal-btn:hover { opacity: 0.88; }
+    .modal-feedback-btn {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 8px 16px;
+      background: #f5f3ee;
+      color: var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      text-align: center;
+      width: 100%;
+    }
+    .modal-feedback-btn:hover { background: var(--accent-light); }
 
     /* ── 公告 Modal ── */
     .ann-overlay {
@@ -1265,7 +1280,28 @@
     gcalA.textContent = "📅 加入Google 行事曆";
     modalBody.appendChild(gcalA);
 
+    // 課後回饋按鈕：課程開始後才顯示
+    const classStart = new Date(`${useDateStr}T${(timeLabel || orig["時間"])}:00`);
+    if (new Date() >= classStart) {
+      const feedbackA = document.createElement("a");
+      feedbackA.className = "modal-feedback-btn";
+      feedbackA.href = buildFeedbackUrl(orig, useDateStr, timeLabel || orig["時間"]);
+      feedbackA.target = "_blank";
+      feedbackA.rel = "noopener";
+      feedbackA.textContent = "📝 課後回饋";
+      modalBody.appendChild(feedbackA);
+    }
+
     modalOverlay.classList.add("open");
+  }
+
+  // 建立課後回饋 URL（Google 表單預填課程資訊）
+  const FEEDBACK_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSdyLd6YRnCZuJP2j4ZPr8f5rxgVs46ahv4qLsSYMarzZ8mRaQ/viewform";
+  function buildFeedbackUrl(orig, dateStr, timeStr) {
+    const name = (orig["班級名稱"] || "").replace(/^L\d｜/, "");
+    const teacher = orig["老師"] || "";
+    const info = `${name} | ${dateStr} | ${timeStr} | ${teacher}`;
+    return `${FEEDBACK_FORM}?entry.749090644=${encodeURIComponent(info)}`;
   }
 
   // 建立 Google 行事曆 URL（課程時長 30 分鐘）
